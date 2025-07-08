@@ -27,7 +27,8 @@ import PermissionsKit
 import Foundation
 import MapKit
 
-class LocationWhenInUseHandler: NSObject, CLLocationManagerDelegate {
+@MainActor
+class LocationWhenInUseHandler: NSObject, @preconcurrency CLLocationManagerDelegate {
     
     // MARK: - Location Manager
     
@@ -59,13 +60,7 @@ class LocationWhenInUseHandler: NSObject, CLLocationManagerDelegate {
         self.completionHandler = completionHandler
         
         let status: CLAuthorizationStatus = {
-            #if os(visionOS)
             locationManager.authorizationStatus
-            #elseif os(macOS)
-            locationManager.authorizationStatus
-            #else
-            CLLocationManager.authorizationStatus()
-            #endif
         }()
         
         switch status {
@@ -86,10 +81,6 @@ class LocationWhenInUseHandler: NSObject, CLLocationManagerDelegate {
     
     override init() {
         super.init()
-    }
-    
-    deinit {
-        locationManager.delegate = nil
     }
 }
 #endif

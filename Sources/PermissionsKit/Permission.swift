@@ -25,7 +25,7 @@ import Foundation
 import UIKit
 #endif
 
-open class Permission {
+open class IKPermission {
     
     open var authorized: Bool {
         return status == .authorized
@@ -66,15 +66,15 @@ open class Permission {
     
     // MARK: Must Ovveride
     
-    open var kind: Permission.Kind {
+    open var kind: IKPermission.Kind {
         preconditionFailure("This method must be overridden.")
     }
     
-    open var status: Permission.Status {
+    open var status: IKPermission.Status {
         preconditionFailure("This method must be overridden.")
     }
     
-    open func request(completion: @escaping ()->Void) {
+    open func request() async -> IKPermission.Status {
         preconditionFailure("This method must be overridden.")
     }
     
@@ -88,12 +88,13 @@ open class Permission {
     
     // MARK: - Models
     
-    @objc public enum Status: Int, CustomStringConvertible {
+    @objc public enum Status: Int, CustomStringConvertible, Sendable {
         
         case authorized
         case denied
         case notDetermined
         case notSupported
+        case limited
         
         public var description: String {
             switch self {
@@ -101,6 +102,7 @@ open class Permission {
             case .denied: return "denied"
             case .notDetermined: return "not determined"
             case .notSupported: return "not supported"
+            case .limited: return "limited"
             }
         }
     }

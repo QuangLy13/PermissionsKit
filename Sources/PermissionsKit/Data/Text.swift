@@ -23,7 +23,7 @@ import Foundation
 
 enum Texts {
     
-    static func permission_name(for kind: Permission.Kind) -> String {
+    static func permission_name(for kind: IKPermission.Kind) -> String {
         switch kind {
         case .camera:
             return NSLocalizedString("permission camera name", bundle: bundle, comment: "")
@@ -74,7 +74,7 @@ enum Texts {
         
         // If installed via Cocoapods, should use bundle from podspec.
         
-        let path = Bundle(for: Permission.self).path(forResource: "PermissionsKit", ofType: "bundle") ?? ""
+        let path = Bundle(for: IKPermission.self).path(forResource: "PermissionsKit", ofType: "bundle") ?? ""
         let bundle = Bundle(path: path) ?? Bundle.main
         return bundle
         #endif

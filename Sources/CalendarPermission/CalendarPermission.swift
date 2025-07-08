@@ -27,24 +27,24 @@ import PermissionsKit
 import Foundation
 import EventKit
 
-public extension Permission {
+public extension IKPermission {
     
     static func calendar(access: CalendarAccess) -> CalendarPermission {
         CalendarPermission(kind: .calendar(access: access))
     }
 }
 
-public class CalendarPermission: Permission {
+public class CalendarPermission: IKPermission {
     
-    private var _kind: Permission.Kind
+    private var _kind: IKPermission.Kind
     
     // MARK: - Init
     
-    init(kind: Permission.Kind) {
+    init(kind: IKPermission.Kind) {
         self._kind = kind
     }
     
-    open override var kind: Permission.Kind { self._kind }
+    open override var kind: IKPermission.Kind { self._kind }
     open var usageDescriptionKey: String? {
         if #available(iOS 17, *) {
             switch kind {
@@ -63,7 +63,7 @@ public class CalendarPermission: Permission {
         }
     }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         // Fix when status first time response with other state.
         let _ = EKEventStore.authorizationStatus(for: EKEntityType.event)
         
@@ -93,45 +93,21 @@ public class CalendarPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        
+    public override func request() async -> IKPermission.Status {
         let eventStore = EKEventStore()
         
         if #available(iOS 17.0, *) {
-            
-            let requestWriteOnly = {
-                eventStore.requestWriteOnlyAccessToEvents { (accessGranted: Bool, error: Error?) in
-                    DispatchQueue.main.async {
-                        completion()
-                    }
-                }
-            }
-            
-            let requestFull = {
-                eventStore.requestFullAccessToEvents { (accessGranted: Bool, error: Error?) in
-                    DispatchQueue.main.async {
-                        completion()
-                    }
-                }
-            }
-            
-            switch kind {
-            case .calendar(let access):
-                if access == .write {
-                    requestWriteOnly()
-                } else {
-                    requestFull()
-                }
+            switch self.kind {
+            case .calendar(let access) where access == .write:
+                _ = try? await eventStore.requestWriteOnlyAccessToEvents()
             default:
-                requestFull()
+                _ = try? await eventStore.requestFullAccessToEvents()
             }
         } else {
-            eventStore.requestAccess(to: EKEntityType.event) { (accessGranted: Bool, error: Error?) in
-                DispatchQueue.main.async {
-                    completion()
-                }
-            }
+            _ = try? await eventStore.requestAccess(to: .event)
         }
+        
+        return status
     }
 }
 #endif

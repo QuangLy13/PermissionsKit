@@ -28,7 +28,7 @@ import Foundation
 import AVFoundation
 
 @available(iOS 11.0, macCatalyst 14.0, *)
-public extension Permission {
+public extension IKPermission {
     
     static var camera: CameraPermission {
         return CameraPermission()
@@ -36,12 +36,12 @@ public extension Permission {
 }
 
 @available(iOS 11.0, macCatalyst 14.0, *)
-public class CameraPermission: Permission {
+public class CameraPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .camera }
+    open override var kind: IKPermission.Kind { .camera }
     open var usageDescriptionKey: String? { "NSCameraUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
         case .authorized: return .authorized
         case .denied: return .denied
@@ -51,13 +51,10 @@ public class CameraPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        AVCaptureDevice.requestAccess(for: AVMediaType.video, completionHandler: {
-            finished in
-            DispatchQueue.main.async {
-                completion()
-            }
-        })
+    public override func request() async -> IKPermission.Status {
+        _ = await AVCaptureDevice.requestAccess(for: .video)
+        
+        return status
     }
 }
 #endif

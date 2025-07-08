@@ -23,7 +23,7 @@
 import Foundation
 import CoreBluetooth
 
-class BluetoothHandler: NSObject, CBCentralManagerDelegate {
+class BluetoothHandler: NSObject, CBCentralManagerDelegate, @unchecked Sendable {
     
     var completion: ()->Void = {}
     

@@ -27,19 +27,19 @@ import PermissionsKit
 import Foundation
 import Intents
 
-public extension Permission {
+public extension IKPermission {
 
     static var siri: SiriPermission {
         return SiriPermission()
     }
 }
 
-public class SiriPermission: Permission {
+public class SiriPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .siri }
+    open override var kind: IKPermission.Kind { .siri }
     open var usageDescriptionKey: String? { "NSSiriUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         switch INPreferences.siriAuthorizationStatus() {
         case .authorized: return .authorized
         case .denied: return .denied
@@ -49,10 +49,10 @@ public class SiriPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        INPreferences.requestSiriAuthorization { _ in
-            DispatchQueue.main.async {
-                completion()
+    public override func request() async -> IKPermission.Status {
+        return await withCheckedContinuation { continuation in
+            INPreferences.requestSiriAuthorization { [weak self] _ in
+                continuation.resume(returning: self?.status ?? .denied)
             }
         }
     }

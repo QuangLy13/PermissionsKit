@@ -28,19 +28,19 @@ import Foundation
 import CoreBluetooth
 import CloudKit
 
-public extension Permission {
+public extension IKPermission {
     
     static var bluetooth: BluetoothPermission {
         return BluetoothPermission()
     }
 }
 
-public class BluetoothPermission: Permission {
+public class BluetoothPermission: IKPermission, @unchecked Sendable {
     
-    open override var kind: Permission.Kind { .bluetooth }
+    open override var kind: IKPermission.Kind { .bluetooth }
     open var usageDescriptionKey: String? { "NSBluetoothAlwaysUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         if #available(iOS 13.1, tvOS 13.1, *) {
             switch CBCentralManager.authorization {
             case .allowedAlways: return .authorized
@@ -68,9 +68,14 @@ public class BluetoothPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        BluetoothHandler.shared.completion = completion
-        BluetoothHandler.shared.reqeustUpdate()
+    public override func request() async -> IKPermission.Status {
+        await withCheckedContinuation { continuation in
+            BluetoothHandler.shared.completion = { [weak self] in
+                continuation.resume(returning: self?.status ?? .denied)
+            }
+            
+            BluetoothHandler.shared.reqeustUpdate()
+        }
     }
 }
 #endif

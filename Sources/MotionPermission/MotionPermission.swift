@@ -27,19 +27,19 @@ import PermissionsKit
 import Foundation
 import CoreMotion
 
-public extension Permission {
+public extension IKPermission {
     
     static var motion: MotionPermission {
         return MotionPermission()
     }
 }
 
-public class MotionPermission: Permission {
+public class MotionPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .motion }
+    open override var kind: IKPermission.Kind { .motion }
     open var usageDescriptionKey: String? { "NSMotionUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         switch CMMotionActivityManager.authorizationStatus() {
         case .authorized: return .authorized
         case .denied: return .denied
@@ -49,14 +49,18 @@ public class MotionPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        let manager = CMMotionActivityManager()
-        let today = Date()
+    public override func request() async -> IKPermission.Status {
+        await withCheckedContinuation { continuation in
+            let manager = CMMotionActivityManager()
+            let today = Date()
+            
+            manager.queryActivityStarting(from: today, to: today, to: .main) { _, _ in
+                continuation.resume()
+                manager.stopActivityUpdates()
+            }
+        }
         
-        manager.queryActivityStarting(from: today, to: today, to: OperationQueue.main, withHandler: { (activities: [CMMotionActivity]?, error: Error?) -> () in
-            completion()
-            manager.stopActivityUpdates()
-        })
+        return status
     }
 }
 #endif

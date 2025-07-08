@@ -27,20 +27,20 @@ import PermissionsKit
 import Foundation
 import EventKit
 
-public extension Permission {
+public extension IKPermission {
 
     static var reminders: RemindersPermission {
         return RemindersPermission()
     }
 }
 
-public class RemindersPermission: Permission {
+public class RemindersPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .reminders }
+    open override var kind: IKPermission.Kind { .reminders }
     open var usageDescriptionKey: String? { "NSRemindersUsageDescription" }
     open var usageFullAccessDescriptionKey: String? { "NSRemindersFullAccessUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         switch EKEventStore.authorizationStatus(for: EKEntityType.reminder) {
         case .authorized: return .authorized
         case .denied: return .denied
@@ -52,23 +52,16 @@ public class RemindersPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        
+    public override func request() async -> IKPermission.Status {
         let eventStore = EKEventStore()
-        
+
         if #available(iOS 17.0, *) {
-            eventStore.requestFullAccessToReminders { (accessGranted: Bool, error: Error?) in
-                DispatchQueue.main.async {
-                    completion()
-                }
-            }
+            _ = try? await eventStore.requestFullAccessToReminders()
         } else {
-            eventStore.requestAccess(to: EKEntityType.reminder) { (accessGranted: Bool, error: Error?) in
-                DispatchQueue.main.async {
-                    completion()
-                }
-            }
+            _ = try? await eventStore.requestAccess(to: .reminder)
         }
+
+        return status
     }
 }
 #endif

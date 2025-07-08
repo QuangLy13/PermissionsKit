@@ -27,19 +27,19 @@ import PermissionsKit
 import Foundation
 import Contacts
 
-public extension Permission {
+public extension IKPermission {
 
     static var contacts: ContactsPermission {
         return ContactsPermission()
     }
 }
 
-public class ContactsPermission: Permission {
+public class ContactsPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .contacts }
+    open override var kind: IKPermission.Kind { .contacts }
     open var usageDescriptionKey: String? { "NSContactsUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         let authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
         if #available(iOS 18.0, *), authorizationStatus == .limited {
             return .authorized
@@ -49,17 +49,16 @@ public class ContactsPermission: Permission {
         case .denied: return .denied
         case .notDetermined: return .notDetermined
         case .restricted: return .denied
+        case .limited: return .limited
         @unknown default: return .denied
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
+    public override func request() async -> IKPermission.Status {
         let store = CNContactStore()
-        store.requestAccess(for: .contacts, completionHandler: { (granted, error) in
-            DispatchQueue.main.async {
-                completion()
-            }
-        })
+        _ = try? await store.requestAccess(for: .contacts)
+        
+        return status
     }
 }
 #endif

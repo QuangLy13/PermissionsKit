@@ -27,24 +27,24 @@ import PermissionsKit
 import Foundation
 import EventKit
 
-public extension Permission {
+public extension IKPermission {
     
     static func location(access: LocationAccess) -> LocationPermission {
         LocationPermission(kind: .location(access: access))
     }
 }
 
-public class LocationPermission: Permission {
+public class LocationPermission: IKPermission {
     
-    private var _kind: Permission.Kind
+    private var _kind: IKPermission.Kind
     
     // MARK: - Init
     
-    init(kind: Permission.Kind) {
+    init(kind: IKPermission.Kind) {
         self._kind = kind
     }
     
-    open override var kind: Permission.Kind { self._kind }
+    open override var kind: IKPermission.Kind { self._kind }
     open var usageDescriptionKey: String? {
         switch _kind {
         case .location(let access):
@@ -59,7 +59,7 @@ public class LocationPermission: Permission {
         }
     }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         let authorizationStatus: CLAuthorizationStatus = {
             let locationManager = CLLocationManager()
             if #available(iOS 14.0, tvOS 14.0, *) {
@@ -103,27 +103,33 @@ public class LocationPermission: Permission {
         return false
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        switch _kind {
+    @MainActor
+    public override func request() async -> IKPermission.Status {
+        switch self._kind {
         case .location(let access):
-            switch access {
-            case .whenInUse:
-                LocationWhenInUseHandler.shared = LocationWhenInUseHandler()
-                LocationWhenInUseHandler.shared?.requestPermission() {
-                    DispatchQueue.main.async {
-                        completion()
-                        LocationWhenInUseHandler.shared = nil
+            await withCheckedContinuation { continuation in
+                switch access {
+                case .whenInUse:
+                    LocationWhenInUseHandler.shared = LocationWhenInUseHandler()
+                    LocationWhenInUseHandler.shared?.requestPermission() {
+                        DispatchQueue.main.async {
+                            continuation.resume()
+                            LocationWhenInUseHandler.shared = nil
+                        }
                     }
-                }
-            case .always:
-                LocationAlwaysHandler.shared = LocationAlwaysHandler()
-                LocationAlwaysHandler.shared?.requestPermission() {
-                    DispatchQueue.main.async {
-                        completion()
-                        LocationAlwaysHandler.shared = nil
+                case .always:
+                    LocationAlwaysHandler.shared = LocationAlwaysHandler()
+                    LocationAlwaysHandler.shared?.requestPermission() {
+                        DispatchQueue.main.async {
+                            continuation.resume()
+                            LocationAlwaysHandler.shared = nil
+                        }
                     }
                 }
             }
+            
+            return status
+
         default:
             fatalError()
         }

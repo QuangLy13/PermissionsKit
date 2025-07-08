@@ -27,7 +27,8 @@ import PermissionsKit
 import Foundation
 import MapKit
 
-class LocationAlwaysHandler: NSObject, CLLocationManagerDelegate {
+@MainActor
+class LocationAlwaysHandler: NSObject, @preconcurrency CLLocationManagerDelegate {
     
     // MARK: - Location Manager
     
@@ -55,7 +56,7 @@ class LocationAlwaysHandler: NSObject, CLLocationManagerDelegate {
     func requestPermission(_ completionHandler: @escaping () -> Void) {
         self.completionHandler = completionHandler
         
-        let status = CLLocationManager.authorizationStatus()
+        let status = locationManager.authorizationStatus
         
         switch status {
         case .notDetermined:
@@ -75,10 +76,6 @@ class LocationAlwaysHandler: NSObject, CLLocationManagerDelegate {
     
     override init() {
         super.init()
-    }
-    
-    deinit {
-        locationManager.delegate = nil
     }
 }
 #endif

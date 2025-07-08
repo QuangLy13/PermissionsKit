@@ -26,16 +26,16 @@ import PermissionsKit
 #if PERMISSIONSKIT_PHOTOLIBRARY
 import Photos
 
-public extension Permission {
+public extension IKPermission {
     
     static var photoLibrary: PhotoLibraryPermission {
         return PhotoLibraryPermission()
     }
 }
 
-public class PhotoLibraryPermission: Permission {
+public class PhotoLibraryPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .photoLibrary }
+    open override var kind: IKPermission.Kind { .photoLibrary }
     
     open var fullAccessUsageDescriptionKey: String? {
         "NSPhotoLibraryUsageDescription"
@@ -45,24 +45,21 @@ public class PhotoLibraryPermission: Permission {
         "NSPhotoLibraryAddUsageDescription"
     }
     
-    public override var status: Permission.Status {
-        switch PHPhotoLibrary.authorizationStatus() {
+    public override var status: IKPermission.Status {
+        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
         case .authorized: return .authorized
         case .denied: return .denied
         case .notDetermined: return .notDetermined
         case .restricted: return .denied
-        case .limited: return .authorized
+        case .limited: return .limited
         @unknown default: return .denied
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        PHPhotoLibrary.requestAuthorization({
-            finished in
-            DispatchQueue.main.async {
-                completion()
-            }
-        })
+    @MainActor
+    public override func request() async -> IKPermission.Status {
+        _ = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        return status
     }
 }
 #endif

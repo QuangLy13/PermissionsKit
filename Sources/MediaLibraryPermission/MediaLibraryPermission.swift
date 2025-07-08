@@ -27,19 +27,19 @@ import PermissionsKit
 import Foundation
 import MediaPlayer
 
-public extension Permission {
+public extension IKPermission {
     
     static var mediaLibrary: MediaLibraryPermission {
         return MediaLibraryPermission()
     }
 }
 
-public class MediaLibraryPermission: Permission {
+public class MediaLibraryPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .mediaLibrary }
+    open override var kind: IKPermission.Kind { .mediaLibrary }
     open var usageDescriptionKey: String? { "NSAppleMusicUsageDescription" }
     
-    public override var status: Permission.Status {
+    public override var status: IKPermission.Status {
         switch MPMediaLibrary.authorizationStatus() {
         case .authorized: return .authorized
         case .denied: return .denied
@@ -49,12 +49,9 @@ public class MediaLibraryPermission: Permission {
         }
     }
     
-    public override func request(completion: @escaping () -> Void) {
-        MPMediaLibrary.requestAuthorization() { status in
-            DispatchQueue.main.async {
-                completion()
-            }
-        }
+    public override func request() async -> IKPermission.Status {
+        _ = await MPMediaLibrary.requestAuthorization()
+        return status
     }
 }
 #endif

@@ -27,21 +27,21 @@ import PermissionsKit
 import Foundation
 import HealthKit
 
-public extension Permission {
+public extension IKPermission {
     
     static var health: HealthPermission {
         return HealthPermission()
     }
 }
 
-public class HealthPermission: Permission {
+public class HealthPermission: IKPermission {
     
-    open override var kind: Permission.Kind { .health }
+    open override var kind: IKPermission.Kind { .health }
     
     open var readingUsageDescriptionKey: String? { "NSHealthUpdateUsageDescription" }
     open var writingUsageDescriptionKey: String? { "NSHealthShareUsageDescription" }
     
-    public static func status(for type: HKObjectType) -> Permission.Status {
+    public func status(for type: HKObjectType) -> IKPermission.Status {
         switch HKHealthStore().authorizationStatus(for: type) {
         case .sharingAuthorized: return .authorized
         case .sharingDenied: return .denied
@@ -50,11 +50,22 @@ public class HealthPermission: Permission {
         }
     }
     
-    public static func request(forReading readingTypes: Set<HKObjectType>, writing writingTypes: Set<HKSampleType>, completion: @escaping (() -> Void)) {
-        HKHealthStore().requestAuthorization(toShare: writingTypes, read: readingTypes) { _, _ in
-            DispatchQueue.main.async {
-                completion()
+    public func request(forReading readingTypes: Set<HKObjectType>, writing writingTypes: Set<HKSampleType>) async -> IKPermission.Status {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return .notSupported
+        }
+        
+        let store = HKHealthStore()
+        
+        do {
+            try await store.requestAuthorization(toShare: writingTypes, read: readingTypes)
+            if let type = readingTypes.first {
+                return status(for: type)
+            } else {
+                return .denied
             }
+        } catch {
+            return .denied
         }
     }
     
@@ -72,9 +83,9 @@ public class HealthPermission: Permission {
     open override var notDetermined: Bool { fatalError() }
     
     @available(*, unavailable)
-    public override var status: Permission.Status { fatalError() }
+    public override var status: IKPermission.Status { fatalError() }
     
     @available(*, unavailable)
-    open override func request(completion: @escaping ()->Void) { fatalError() }
+    open override func request() async -> IKPermission.Status { fatalError() }
 }
 #endif
